@@ -1,20 +1,119 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://unpkg.com/html5-qrcode"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event QR Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+    }
+
+    .container {
+      width: 95%;
+      max-width: 420px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(15px);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 5px;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    p.subtitle {
+      margin-top: 0;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+
+    #reader {
+      margin-top: 20px;
+      border-radius: 15px;
+      overflow: hidden;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      min-height: 20px;
+    }
+
+    .success {
+      background: #16a34a;
+    }
+
+    .error {
+      background: #dc2626;
+    }
+
+    .loading {
+      background: #2563eb;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #3b82f6;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+  </style>
 </head>
+
 <body>
 
-<h2>Event Scanner</h2>
-<div id="reader" style="width:300px;"></div>
-<div id="result"></div>
+  <div class="container">
+    <h1>Event QR Scanner</h1>
+    <p class="subtitle">Scan attendee QR codes for check-in</p>
+
+    <div id="reader"></div>
+
+    <div id="status" class="status">Waiting to scan...</div>
+
+    <button onclick="restartScanner()">Scan Next</button>
+  </div>
 
 <script>
 
 const backendURL = "https://script.google.com/macros/s/AKfycbzWJYX9TO2MzBWHCBHx8_zqgkTMfUop5FKJfbqJZZM5QtLfVOc4cq_iITbFRfRQkhWapQ/exec";
 
+let scanner;
+
+function setStatus(message, type) {
+  const statusDiv = document.getElementById("status");
+  statusDiv.innerText = message;
+  statusDiv.className = "status " + type;
+}
+
 function onScanSuccess(decodedText) {
+
+  scanner.clear(); // stop scanner after success
+  setStatus("Processing check-in...", "loading");
 
   fetch(backendURL, {
     method: "POST",
@@ -22,18 +121,28 @@ function onScanSuccess(decodedText) {
   })
   .then(res => res.text())
   .then(data => {
-    document.getElementById("result").innerText = data;
+    setStatus(data, "success");
+  })
+  .catch(error => {
+    setStatus("Error connecting to server.", "error");
   });
-
 }
 
-const scanner = new Html5QrcodeScanner(
-  "reader",
-  { fps: 10, qrbox: 250 },
-  false
-);
+function restartScanner() {
+  setStatus("Waiting to scan...", "");
+  initScanner();
+}
 
-scanner.render(onScanSuccess);
+function initScanner() {
+  scanner = new Html5QrcodeScanner(
+    "reader",
+    { fps: 10, qrbox: 250 },
+    false
+  );
+  scanner.render(onScanSuccess);
+}
+
+initScanner();
 
 </script>
 
